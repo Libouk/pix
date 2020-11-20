@@ -23,20 +23,24 @@ class SiecleParser {
 
   async parse() {
 
-    await this.checkUAI();
+    await this._checkUAI();
 
-    const schoolingRegistrations = await _processSiecleFile();
+    const schoolingRegistrations = await this._parseStudent();
 
     return schoolingRegistrations.filter((schoolingRegistration) => !isUndefined(schoolingRegistration.division));
   }
 
-  async checkUAI() {
+  async _checkUAI() {
     const UAIFromSIECLE = await XmlStreamer.perform(_UAIextractor);
     const UAIFromUserOrganization = this.organization.externalId;
 
     if (UAIFromSIECLE !== UAIFromUserOrganization) {
       throw new FileValidationError(UAI_SIECLE_FILE_NOT_MATCH_ORGANIZATION_UAI);
     }
+  }
+
+  async _parseStudent() {
+    return await XmlStreamer.perform(_registrationExtractor);
   }
 }
 
@@ -105,7 +109,7 @@ function _registrationExtractor(saxParser, resolve, reject) {
     if (_isSchoolingRegistrationNode(xmlNode)) {
       xml2js.parseString(xmlNode, (err, nodeData) => {
         try {
-          if (err) throw err;
+          if (err) throw err;// Si j'enleve cette ligne les tests passent
           _processStudentsNodes(mapSchoolingRegistrationsByStudentId, nodeData, nationalStudentIds);
           _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
         } catch (err) {
