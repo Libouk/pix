@@ -102,7 +102,7 @@ class XMLStreamer {
     try {
       return await new Promise((resolve, reject_) => {
         const reject = (e) => {
-          siecleFileStream.removeAllListeners();
+          siecleFileStream.removeAllListeners();//si j'enlève cette ligne les tests passent
           siecleFileStream.on('error', noop);
           return reject_(e);
         };

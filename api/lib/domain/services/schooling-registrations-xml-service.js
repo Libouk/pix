@@ -145,7 +145,7 @@ function _isSchoolingRegistrationNode(xmlNode) {
 function _isStudentEligible(studentData, mapSchoolingRegistrationsByStudentId) {
   const isStudentNotLeftSchoolingRegistration = isEmpty(studentData.DATE_SORTIE);
   const isStudentNotYetArrivedSchoolingRegistration = !isEmpty(studentData.ID_NATIONAL);
-  const isStudentNotDuplicatedInTheSIECLEFile = !mapSchoolingRegistrationsByStudentId.has(studentData.$.ELEVE_ID);
+  const isStudentNotDuplicatedInTheSIECLEFile = !mapSchoolingRegistrationsByStudentId.has(studentData.$.ELEVE_ID);// Si je fais isStudentNotDuplicatedInTheSIECLEFile = true les tests passent
   return isStudentNotLeftSchoolingRegistration && isStudentNotYetArrivedSchoolingRegistration && isStudentNotDuplicatedInTheSIECLEFile;
 }
 
