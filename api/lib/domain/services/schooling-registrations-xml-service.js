@@ -51,12 +51,12 @@ function _unzippedStream(path) {
 
 const ZIP = 'zip';
 
-class XMLParser {
+class XMLStreamer {
   static async create(path) {
-    const parser = new XMLParser(path)
-    await parser._detectEncoding();
+    const stream = new XMLStreamer(path)
+    await stream._detectEncoding();
 
-    return parser;
+    return stream;
   }
 
   constructor(path) {
@@ -107,14 +107,14 @@ class XMLParser {
   }
 }
 
-let parser;
+let XMLstreamer;
 
 module.exports = {
   extractSchoolingRegistrationsInformationFromSIECLE,
 };
 
 async function extractSchoolingRegistrationsInformationFromSIECLE(path, organization) {
-  parser = await XMLParser.create(path)
+  XMLstreamer = await XMLStreamer.create(path)
 
   const UAIFromSIECLE = await _extractUAI(path);
   const UAIFromUserOrganization = organization.externalId;
@@ -128,33 +128,33 @@ async function extractSchoolingRegistrationsInformationFromSIECLE(path, organiza
   return schoolingRegistrations.filter((schoolingRegistration) => !isUndefined(schoolingRegistration.division));
 }
 
-function _extractUAI(path) {
-  return _withSiecleStream(path, _UAIextractor);
+function _extractUAI() {
+  return _withSiecleStream(_UAIextractor);
 }
 
-async function _processSiecleFile(path) {
-  return _withSiecleStream(path, _registrationExtractor);
+async function _processSiecleFile() {
+  return _withSiecleStream(_registrationExtractor);
 }
 
-async function _withSiecleStream(path, extractor) {
-  const rawStream = await parser.getStream();
+async function _withSiecleStream(extractor) {
+  const siecleFileStream = await XMLstreamer.getStream();
 
   try {
     return await new Promise((resolve, reject_) => {
       const reject = (e) => {
-        rawStream.removeAllListeners();
-        rawStream.on('error', noop);
+        siecleFileStream.removeAllListeners();
+        siecleFileStream.on('error', noop);
         return reject_(e);
       };
 
-      rawStream.on('error', () => {
+      siecleFileStream.on('error', () => {
         reject(new FileValidationError(NO_STUDENTS_IMPORTED_FROM_INVALID_FILE));
       });
 
-      extractor(rawStream, resolve, reject);
+      extractor(siecleFileStream, resolve, reject);
     });
   } finally {
-    parser.destroyStream();
+    XMLstreamer.destroyStream();
   }
 }
 
