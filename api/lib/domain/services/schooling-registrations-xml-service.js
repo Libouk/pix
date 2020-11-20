@@ -116,8 +116,8 @@ function _registrationExtractor(saxParser, resolve, reject) {
   });
 
   streamerToParseSchoolingRegistrations.on('end', () => {
-      resolve(Array.from(mapSchoolingRegistrationsByStudentId.values()));
-    });
+    resolve(Array.from(mapSchoolingRegistrationsByStudentId.values()));
+  });
 }
 
 function _mapStudentInformationToSchoolingRegistration(nodeData) {
