@@ -262,19 +262,3 @@ function _throwIfNationalStudentIdIsDuplicatedInFile(nationalStudentId, national
     throw new SameNationalStudentIdInFileError(nationalStudentId);
   }
 }
-
-function _unzippedStream(path) {
-  const zip = new StreamZip({ file: path });
-  const stream = new StreamPipe();
-
-  zip.on('entry', (entry) => {
-    zip.stream(entry, (err, stm) => {
-
-      if (!entry.name.includes('/')) {
-        stm.pipe(stream);
-      }
-    });
-  });
-
-  return stream;
-}
