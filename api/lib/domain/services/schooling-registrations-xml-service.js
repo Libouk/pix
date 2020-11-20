@@ -22,16 +22,21 @@ class SiecleParser {
   }
 
   async parse() {
-    const UAIFromSIECLE = await _extractUAI();
+
+    await this.checkUAI();
+
+    const schoolingRegistrations = await _processSiecleFile();
+
+    return schoolingRegistrations.filter((schoolingRegistration) => !isUndefined(schoolingRegistration.division));
+  }
+
+  async checkUAI() {
+    const UAIFromSIECLE = await _withSiecleStream(_UAIextractor);
     const UAIFromUserOrganization = this.organization.externalId;
 
     if (UAIFromSIECLE !== UAIFromUserOrganization) {
       throw new FileValidationError(UAI_SIECLE_FILE_NOT_MATCH_ORGANIZATION_UAI);
     }
-
-    const schoolingRegistrations = await _processSiecleFile();
-
-    return schoolingRegistrations.filter((schoolingRegistration) => !isUndefined(schoolingRegistration.division));
   }
 }
 
@@ -44,10 +49,6 @@ async function extractSchoolingRegistrationsInformationFromSIECLE(path, organiza
   parser = new SiecleParser(organization)
 
   return parser.parse();
-}
-
-function _extractUAI() {
-  return _withSiecleStream(_UAIextractor);
 }
 
 async function _processSiecleFile() {
