@@ -69,8 +69,9 @@ class XMLParser {
   }
 
   async getStream(){
-    const stream = await this._getRawStream();
-    return stream.pipe(iconv.decodeStream(this.encoding))
+    this.stream = await this._getRawStream();
+    const saxParser = sax.createStream(true);
+    return this.stream.pipe(iconv.decodeStream(this.encoding)).pipe(saxParser);
   }
 
   async _getRawStream(){
@@ -99,6 +100,10 @@ class XMLParser {
         resolve(line);
       })
     });
+  }
+
+  destroyStream() {
+    this.stream.destroy();
   }
 }
 
@@ -136,24 +141,20 @@ async function _withSiecleStream(path, extractor) {
 
   try {
     return await new Promise((resolve, reject_) => {
-      const saxParser = sax.createStream(true);
-
       const reject = (e) => {
-        saxParser.removeAllListeners();
-        saxParser.on('error', noop);
+        rawStream.removeAllListeners();
+        rawStream.on('error', noop);
         return reject_(e);
       };
 
-      saxParser.on('error', () => {
+      rawStream.on('error', () => {
         reject(new FileValidationError(NO_STUDENTS_IMPORTED_FROM_INVALID_FILE));
       });
 
-      extractor(saxParser, resolve, reject);
-
-      rawStream.pipe(saxParser);
+      extractor(rawStream, resolve, reject);
     });
   } finally {
-    rawStream.destroy();
+    parser.destroyStream();
   }
 }
 
