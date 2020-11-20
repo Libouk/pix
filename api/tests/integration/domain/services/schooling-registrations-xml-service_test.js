@@ -2,7 +2,7 @@ const { expect, catchErr } = require('../../../test-helper');
 const { FileValidationError, SameNationalStudentIdInFileError } = require('../../../../lib/domain/errors');
 const schoolingRegistrationsXmlService = require('../../../../lib/domain/services/schooling-registrations-xml-service');
 
-describe('Integration | Services | schooling-registrations-xml-service', () => {
+describe.only('Integration | Services | schooling-registrations-xml-service', () => {
 
   describe('extractSchoolingRegistrationsInformationFromSIECLE', () => {
 
