@@ -53,6 +53,7 @@ class SchoolingRegistrationsSet {
 
   add(id, xmlNode) {
     const nationalStudentId = _getValueFromParsedElement(xmlNode.ID_NATIONAL);
+    _throwIfNationalStudentIdIsDuplicatedInFile(nationalStudentId, this.studentIds);
     this.studentIds.push(nationalStudentId);
 
     this.schoolingRegistrationsByStudentId.set(id, _mapStudentInformationToSchoolingRegistration(xmlNode));
@@ -101,18 +102,19 @@ function _registrationExtractor(saxParser, resolve, reject) {
         try {
           if (err) throw err;// Si j'enleve cette ligne les tests passent
 
-          if(nodeData.ELEVE && _isImportable(nodeData.ELEVE, mapSchoolingRegistrationsByStudentId)) {
-            _processStudentsNodes(schoolingRegistrationsSet, nodeData.ELEVE, nationalStudentIds);
+            if(nodeData.ELEVE && _isImportable(nodeData.ELEVE, mapSchoolingRegistrationsByStudentId)) {
+
+              _processStudentsNodes(schoolingRegistrationsSet, nodeData.ELEVE);
+            }
+            else if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
+              _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
+            }
+          } catch (err) {
+            reject(err);
           }
-          else if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
-            _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      });
-    }
-  });
+        });
+      }
+    });
 
   streamerToParseSchoolingRegistrations.on('end', () => {
     resolve(Array.from(mapSchoolingRegistrationsByStudentId.values()));
@@ -153,10 +155,8 @@ function _getValueFromParsedElement(obj) {
   return (Array.isArray(obj) && !isEmpty(obj)) ? obj[0] : obj;
 }
 
-function _processStudentsNodes(schoolingRegistrationsSet, studentNode, nationalStudentIds) {
-  const nationalStudentId = _getValueFromParsedElement(studentNode.ID_NATIONAL);
+function _processStudentsNodes(schoolingRegistrationsSet, studentNode,) {
 
-  _throwIfNationalStudentIdIsDuplicatedInFile(nationalStudentId, nationalStudentIds);
   schoolingRegistrationsSet.add(studentNode.$.ELEVE_ID, studentNode);
 }
 
