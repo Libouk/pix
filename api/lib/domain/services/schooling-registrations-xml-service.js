@@ -119,11 +119,9 @@ function _registrationExtractor(saxParser, resolve, reject) {
           if (err) throw err;// Si j'enleve cette ligne les tests passent
 
             if(nodeData.ELEVE && _isImportable(nodeData.ELEVE, mapSchoolingRegistrationsByStudentId)) {
-
-              _processStudentsNodes(schoolingRegistrationsSet, nodeData.ELEVE);
-            }
+              schoolingRegistrationsSet.add(nodeData.ELEVE.$.ELEVE_ID, nodeData.ELEVE);            }
             else if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
-              _processStudentsStructureNodes(schoolingRegistrationsSet, nodeData);
+              schoolingRegistrationsSet.updateDivision(nodeData);
             }
           } catch (err) {
             reject(err);
@@ -169,13 +167,4 @@ function _isImportable(studentData, mapSchoolingRegistrationsByStudentId) {
 function _getValueFromParsedElement(obj) {
   if (isNil(obj)) return null;
   return (Array.isArray(obj) && !isEmpty(obj)) ? obj[0] : obj;
-}
-
-function _processStudentsNodes(schoolingRegistrationsSet, studentNode) {
-
-  schoolingRegistrationsSet.add(studentNode.$.ELEVE_ID, studentNode);
-}
-
-function _processStudentsStructureNodes(schoolingRegistrationsSet, nodeData) {
-  schoolingRegistrationsSet.updateDivision(nodeData);
 }
