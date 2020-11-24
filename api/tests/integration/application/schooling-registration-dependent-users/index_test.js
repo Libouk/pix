@@ -106,7 +106,7 @@ describe('Integration | Application | Route | schooling-registration-dependent-u
       expect(response.statusCode).to.equal(400);
     });
 
-    it('should return 400 when withUsername is not a boolean', async () => {
+    it('if withUsername is not a boolean', async () => {
       // given
       payload.data.attributes['with-username'] = 'not_a_boolean';
 
@@ -116,6 +116,53 @@ describe('Integration | Application | Route | schooling-registration-dependent-u
       // then
       expect(response.statusCode).to.equal(400);
     });
+
+    context('when username is not valid, it should return 400', () => {
+
+      it('if username is an email', async () => {
+      // given
+        payload.data.attributes.username = 'robert.smith1212@example.net';
+
+        // when
+        response = await httpTestServer.request(method, url, payload);
+
+        // then
+        expect(response.statusCode).to.equal(400);
+      });
+
+      it('if username has not dot between names', async () => {
+      // given
+        payload.data.attributes.username = 'robertsmith1212';
+
+        // when
+        response = await httpTestServer.request(method, url, payload);
+
+        // then
+        expect(response.statusCode).to.equal(400);
+      });
+
+      it('if username does not end with 4 digits', async () => {
+      // given
+        payload.data.attributes.username = 'robert.smith';
+
+        // when
+        response = await httpTestServer.request(method, url, payload);
+
+        // then
+        expect(response.statusCode).to.equal(400);
+      });
+
+      it('if username is capitalized', async () => {
+      // given
+        payload.data.attributes.username = 'Robert.Smith1212';
+
+        // when
+        response = await httpTestServer.request(method, url, payload);
+        // then
+        expect(response.statusCode).to.equal(400);
+      });
+    });
+
   });
 
   describe('POST /api/schooling-registration-dependent-users/external-user-token', () => {
