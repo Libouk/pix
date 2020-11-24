@@ -55,32 +55,6 @@ async function extractSchoolingRegistrationsInformationFromSIECLE(path, organiza
   return parser.parse();
 }
 
-async function _processSiecleFile() {
-  return _withSiecleStream(_registrationExtractor);
-}
-
-async function _withSiecleStream(extractor) {
-  const siecleFileStream = await XmlStreamer.getStream();
-
-  try {
-    return await new Promise((resolve, reject_) => {
-      const reject = (e) => {
-        siecleFileStream.removeAllListeners();
-        siecleFileStream.on('error', noop);
-        return reject_(e);
-      };
-
-      siecleFileStream.on('error', () => {
-        reject(new FileValidationError(NO_STUDENTS_IMPORTED_FROM_INVALID_FILE));
-      });
-
-      extractor(siecleFileStream, resolve, reject);
-    });
-  } finally {
-    XmlStreamer._destroyStream();
-  }
-}
-
 function _UAIextractor(saxParser, resolve, reject) {
   const streamerToParseOrganizationUAI = new saxPath.SaXPath(saxParser, NODE_ORGANIZATION_UAI);
 
@@ -88,8 +62,8 @@ function _UAIextractor(saxParser, resolve, reject) {
     xml2js.parseString(xmlNode, (err, nodeData) => {
       if (err) return reject(err);
       if (nodeData.PARAMETRES) {
-        const UAIFromSIECLE = _getValueFromParsedElement(nodeData.PARAMETRES.UAJ);
-        resolve(UAIFromSIECLE);
+        resolve(nodeData.PARAMETRES.UAJ[0]);// Si je garde que cette ligne tous les tests passent
+
       }
     });
   });
@@ -111,10 +85,12 @@ function _registrationExtractor(saxParser, resolve, reject) {
         try {
           if (err) throw err;// Si j'enleve cette ligne les tests passent
 
-          if(nodeData.ELEVE && _isStudentEligible(nodeData.ELEVE, mapSchoolingRegistrationsByStudentId)) {
+          if(nodeData.ELEVE && _isImportable(nodeData.ELEVE, mapSchoolingRegistrationsByStudentId)) {
             _processStudentsNodes(mapSchoolingRegistrationsByStudentId, nodeData.ELEVE, nationalStudentIds);
           }
-          _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
+          else if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
+            _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
+          }
         } catch (err) {
           reject(err);
         }
@@ -149,7 +125,7 @@ function _isSchoolingRegistrationNode(xmlNode) {
   return xmlNode.startsWith(ELEVE_ELEMENT) || xmlNode.startsWith(STRUCTURE_ELEVE_ELEMENT);
 }
 
-function _isStudentEligible(studentData, mapSchoolingRegistrationsByStudentId) {
+function _isImportable(studentData, mapSchoolingRegistrationsByStudentId) {
   const isStudentNotLeftSchoolingRegistration = isEmpty(studentData.DATE_SORTIE);
   const isStudentNotYetArrivedSchoolingRegistration = !isEmpty(studentData.ID_NATIONAL);
   const isStudentNotDuplicatedInTheSIECLEFile = !mapSchoolingRegistrationsByStudentId.has(studentData.$.ELEVE_ID);// Si je fais isStudentNotDuplicatedInTheSIECLEFile = true les tests passent
@@ -169,16 +145,14 @@ function _processStudentsNodes(mapSchoolingRegistrationsByStudentId, studentNode
 }
 
 function _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData) {
-  if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
-    const currentStudent = mapSchoolingRegistrationsByStudentId.get(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID);
-    const structureElement = nodeData.STRUCTURES_ELEVE.STRUCTURE;
+  const currentStudent = mapSchoolingRegistrationsByStudentId.get(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID);
+  const structureElement = nodeData.STRUCTURES_ELEVE.STRUCTURE;
 
-    each(structureElement, (structure) => {
-      if (structure.TYPE_STRUCTURE[0] === DIVISION && structure.CODE_STRUCTURE[0] !== 'Inactifs') {
-        currentStudent.division = structure.CODE_STRUCTURE[0];
-      }
-    });
-  }
+  each(structureElement, (structure) => {
+    if (structure.TYPE_STRUCTURE[0] === DIVISION && structure.CODE_STRUCTURE[0] !== 'Inactifs') {
+      currentStudent.division = structure.CODE_STRUCTURE[0];
+    }
+  });
 }
 
 function _throwIfNationalStudentIdIsDuplicatedInFile(nationalStudentId, nationalStudentIds) {
