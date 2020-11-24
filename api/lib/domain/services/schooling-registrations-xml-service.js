@@ -2,7 +2,7 @@ const { FileValidationError, SameNationalStudentIdInFileError } = require('../er
 const moment = require('moment');
 const xml2js = require('xml2js');
 const saxPath = require('saxpath');
-const { isEmpty, isNil, each, isUndefined, noop } = require('lodash');
+const { isEmpty, isNil, each, isUndefined } = require('lodash');
 
 const DIVISION = 'D';
 const NODE_ORGANIZATION_UAI = '/BEE_ELEVES/PARAMETRES';
@@ -48,12 +48,15 @@ class SchoolingRegistrationsSet {
 
   constructor() {
     this.schoolingRegistrationsByStudentId = new Map();
+    this.studentIds = [];
   }
 
   add(id, xmlNode) {
+    const nationalStudentId = _getValueFromParsedElement(xmlNode.ID_NATIONAL);
+    this.studentIds.push(nationalStudentId);
+
     this.schoolingRegistrationsByStudentId.set(id, _mapStudentInformationToSchoolingRegistration(xmlNode));
   }
-
 }
 
 module.exports = {
@@ -88,7 +91,7 @@ function _UAIextractor(saxParser, resolve, reject) {
 function _registrationExtractor(saxParser, resolve, reject) {
   const schoolingRegistrationsSet  = new SchoolingRegistrationsSet();
   const mapSchoolingRegistrationsByStudentId = schoolingRegistrationsSet.schoolingRegistrationsByStudentId;
-  const nationalStudentIds = [];
+  const nationalStudentIds = schoolingRegistrationsSet.studentIds;
 
   const streamerToParseSchoolingRegistrations = new saxPath.SaXPath(saxParser, NODES_SCHOOLING_REGISTRATIONS);
 
@@ -152,8 +155,8 @@ function _getValueFromParsedElement(obj) {
 
 function _processStudentsNodes(schoolingRegistrationsSet, studentNode, nationalStudentIds) {
   const nationalStudentId = _getValueFromParsedElement(studentNode.ID_NATIONAL);
+
   _throwIfNationalStudentIdIsDuplicatedInFile(nationalStudentId, nationalStudentIds);
-  nationalStudentIds.push(nationalStudentId);
   schoolingRegistrationsSet.add(studentNode.$.ELEVE_ID, studentNode);
 }
 
