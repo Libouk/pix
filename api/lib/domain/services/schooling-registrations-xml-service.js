@@ -59,6 +59,17 @@ class SchoolingRegistrationsSet {
     this.schoolingRegistrationsByStudentId.set(id, _mapStudentInformationToSchoolingRegistration(xmlNode));
   }
 
+  updateDivision(xmlNode) {
+    const currentStudent = this.schoolingRegistrationsByStudentId.get(xmlNode.STRUCTURES_ELEVE.$.ELEVE_ID);
+    const structureElement = xmlNode.STRUCTURES_ELEVE.STRUCTURE;
+
+    each(structureElement, (structure) => {
+      if (structure.TYPE_STRUCTURE[0] === DIVISION && structure.CODE_STRUCTURE[0] !== 'Inactifs') {
+        currentStudent.division = structure.CODE_STRUCTURE[0];
+      }
+    });
+  }
+
   _checkNationalStudentIdUniqueness(nationalStudentId) {
     if (nationalStudentId && this.studentIds.includes(nationalStudentId)) {
       throw new SameNationalStudentIdInFileError(nationalStudentId);
@@ -98,7 +109,6 @@ function _UAIextractor(saxParser, resolve, reject) {
 function _registrationExtractor(saxParser, resolve, reject) {
   const schoolingRegistrationsSet  = new SchoolingRegistrationsSet();
   const mapSchoolingRegistrationsByStudentId = schoolingRegistrationsSet.schoolingRegistrationsByStudentId;
-  const nationalStudentIds = schoolingRegistrationsSet.studentIds;
 
   const streamerToParseSchoolingRegistrations = new saxPath.SaXPath(saxParser, NODES_SCHOOLING_REGISTRATIONS);
 
@@ -113,7 +123,7 @@ function _registrationExtractor(saxParser, resolve, reject) {
               _processStudentsNodes(schoolingRegistrationsSet, nodeData.ELEVE);
             }
             else if (nodeData.STRUCTURES_ELEVE && mapSchoolingRegistrationsByStudentId.has(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID)) {
-              _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData);
+              _processStudentsStructureNodes(schoolingRegistrationsSet, nodeData);
             }
           } catch (err) {
             reject(err);
@@ -161,18 +171,11 @@ function _getValueFromParsedElement(obj) {
   return (Array.isArray(obj) && !isEmpty(obj)) ? obj[0] : obj;
 }
 
-function _processStudentsNodes(schoolingRegistrationsSet, studentNode,) {
+function _processStudentsNodes(schoolingRegistrationsSet, studentNode) {
 
   schoolingRegistrationsSet.add(studentNode.$.ELEVE_ID, studentNode);
 }
 
-function _processStudentsStructureNodes(mapSchoolingRegistrationsByStudentId, nodeData) {
-  const currentStudent = mapSchoolingRegistrationsByStudentId.get(nodeData.STRUCTURES_ELEVE.$.ELEVE_ID);
-  const structureElement = nodeData.STRUCTURES_ELEVE.STRUCTURE;
-
-  each(structureElement, (structure) => {
-    if (structure.TYPE_STRUCTURE[0] === DIVISION && structure.CODE_STRUCTURE[0] !== 'Inactifs') {
-      currentStudent.division = structure.CODE_STRUCTURE[0];
-    }
-  });
+function _processStudentsStructureNodes(schoolingRegistrationsSet, nodeData) {
+  schoolingRegistrationsSet.updateDivision(nodeData);
 }
