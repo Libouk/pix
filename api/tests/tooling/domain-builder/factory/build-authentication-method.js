@@ -50,4 +50,29 @@ buildAuthenticationMethod.buildPasswordAuthenticationMethod = function({
   });
 };
 
+buildAuthenticationMethod.buildPoleEmploiAuthenticationMethod = function({
+  id,
+  externalIdentifier = faker.random.word(),
+  accessToken = faker.random.uuid(),
+  idToken = faker.random.uuid(),
+  expiresIn = faker.random.number(),
+  refreshToken = faker.random.uuid(),
+  userId,
+  createdAt = faker.date.past(),
+  updatedAt = faker.date.past(),
+} = {}) {
+
+  userId = isUndefined(userId) ? buildUser().id : userId;
+
+  return new AuthenticationMethod({
+    id,
+    identityProvider: AuthenticationMethod.identityProviders.POLE_EMPLOI,
+    authenticationComplement: new AuthenticationMethod.PoleEmploiAuthenticationComplement({ accessToken, idToken, expiresIn, refreshToken }),
+    externalIdentifier,
+    userId,
+    createdAt,
+    updatedAt,
+  });
+};
+
 module.exports = buildAuthenticationMethod;
