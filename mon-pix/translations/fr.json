@@ -596,6 +596,7 @@
                         "show-button": "rendre le mot de passe lisible"
                     },
                     "username": {
+                        "error": "Une erreur est survenue. Veuillez recommencer ou contactez le support.",
                         "label": "Mon identifiant"
                     }
                 },

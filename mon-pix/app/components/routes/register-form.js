@@ -11,6 +11,7 @@ import { standardizeNumberInTwoDigitFormat } from 'mon-pix/utils/standardize-num
 
 import isEmailValid from '../../utils/email-validator';
 import isPasswordValid from '../../utils/password-validator';
+import isUsernameValid from '../../utils/username-validator';
 import ENV from 'mon-pix/config/environment';
 
 import { getRegisterErrorsMessageByShortCode } from '../../utils/errors-messages';
@@ -23,6 +24,7 @@ const ERROR_INPUT_MESSAGE_MAP = {
   yearOfBirth: 'pages.login-or-register.register-form.fields.birthdate.year-error',
   email: 'pages.login-or-register.register-form.fields.email.error',
   password: 'pages.login-or-register.register-form.fields.password.error',
+  username: 'pages.login-or-register.register-form.fields.username.error',
 };
 
 const isDayValid = (value) => value > 0 && value <= 31;
@@ -80,7 +82,7 @@ export default class RegisterForm extends Component {
   @computed('email', 'username', 'password')
   get isCreationFormNotValid() {
     const isPasswordNotValid = !isPasswordValid(this.password);
-    const isUsernameNotValid = !isStringValid(this.username);
+    const isUsernameNotValid = !isUsernameValid(this.username);
     const isEmailNotValid = !isEmailValid(this.email);
     if (this.loginWithUsername) {
       return isUsernameNotValid || isPasswordNotValid;
@@ -268,6 +270,11 @@ export default class RegisterForm extends Component {
     this._validateInputPassword(key, value);
   }
 
+  @action
+  triggerInputUsernameValidation(key, value) {
+    this._validateInputUsername(key, value);
+  }
+
   _executeFieldValidation(key, value, isValid) {
     const isInvalidInput = !isValid(value);
     const message = isInvalidInput ? this.intl.t(ERROR_INPUT_MESSAGE_MAP[key]) : null;
@@ -310,6 +317,10 @@ export default class RegisterForm extends Component {
 
   _validateInputPassword(key, value) {
     this._executeFieldValidation(key, value, isPasswordValid);
+  }
+
+  _validateInputUsername(key, value) {
+    this._executeFieldValidation(key, value, isUsernameValid);
   }
 
   _standardizeNumberInInput(attribute, value) {

@@ -80,7 +80,7 @@
           <FormTextfield @label={{t 'pages.login-or-register.register-form.fields.username.label'}}
                          @textfieldName="username"
                          @inputBindingValue={{this.username}}
-                         @onValidate={{action "triggerInputStringValidation" "username" this.username}}
+                         @onValidate={{action "triggerInputUsernameValidation" "username" this.username}}
                          @validationStatus={{this.validation.username.status}}
                          @validationMessage={{this.validation.username.message}}
                          @disabled={{true}}

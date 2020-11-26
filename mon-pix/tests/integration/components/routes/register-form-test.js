@@ -21,6 +21,7 @@ const INVALID_MONTH_OF_BIRTH_ERROR_MESSAGE = 'Votre mois de naissance n’est pa
 const INVALID_YEAR_OF_BIRTH_ERROR_MESSAGE = 'Votre année de naissance n’est pas valide.';
 const EMPTY_EMAIL_ERROR_MESSAGE = 'Votre email n’est pas valide.';
 const INCORRECT_PASSWORD_FORMAT_ERROR_MESSAGE = 'Votre mot de passe doit contenir 8 caractères au minimum et comporter au moins une majuscule, une minuscule et un chiffre.';
+const INCORRECT_USERNAME_FORMAT_ERROR_MESSAGE = 'Une erreur est survenue. Veuillez recommencer ou contactez le support.';
 
 describe('Integration | Component | routes/register-form', function() {
 
@@ -268,6 +269,29 @@ describe('Integration | Component | routes/register-form', function() {
         // then
         expect(find('#register-password-container #validationMessage-password').textContent).to.equal(INCORRECT_PASSWORD_FORMAT_ERROR_MESSAGE);
         expect(find('#register-password-container .form-textfield__input-container--error')).to.exist;
+      });
+    });
+
+    [{ stringFilledIn: 'John.Doe1234' },
+      { stringFilledIn: 'johndoe1234' },
+      { stringFilledIn: 'john.doe' },
+      { stringFilledIn: 'john.doe1234@example.net' },
+    ].forEach(function({ stringFilledIn }) {
+
+      it.only(`should display an error message on username field, when '${stringFilledIn}' is typed and focused out`, async function() {
+        // given
+        this.set('matchingStudentFound', true);
+        this.set('schoolingRegistrationDependentUser', EmberObject.create({ username : stringFilledIn , unloadRecord() {return resolve();}  }));
+        await render(hbs`<Routes::RegisterForm @matchingStudentFound={{this.matchingStudentFound}} @schoolingRegistrationDependentUser={{this.schoolingRegistrationDependentUser}} />`);
+
+        // when
+
+        await fillIn('#username', stringFilledIn);
+        await triggerEvent('#username', 'blur');
+
+        // then
+        expect(find('#register-username-container #validationMessage-username').textContent).to.equal(INCORRECT_USERNAME_FORMAT_ERROR_MESSAGE);
+        expect(find('#register-username-container .form-textfield__input-container--error')).to.exist;
       });
     });
 

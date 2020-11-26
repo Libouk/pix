@@ -596,6 +596,7 @@
                         "show-button": "Show password"
                     },
                     "username": {
+                        "error": "An error has occured. Please try again or contact the support.",
                         "label": "My username"
                     }
                 },
