@@ -53,7 +53,7 @@
     "chai-dom": "^1.8.2",
     "ember-auto-import": "^1.6.0",
     "ember-burger-menu": "^3.3.4",
-    "ember-classic-decorator": "^1.0.7",
+    "ember-classic-decorator": "^2.0.0",
     "ember-cli": "~3.21.0",
     "ember-cli-app-version": "^3.2.0",
     "ember-cli-autoprefixer": "^0.8.1",
