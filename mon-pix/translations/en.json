@@ -985,7 +985,8 @@
             "account-panel": {
                 "first-name": "",
                 "last-name": "",
-                "email": ""
+                "email": "",
+                "username": ""
             },
             "certifications": "My certifications",
             "sign-out": "Log out",
