@@ -1,4 +1,9 @@
-const { expect, generateValidRequestAuthorizationHeader, databaseBuilder } = require('../../../test-helper');
+const {
+  databaseBuilder,
+  expect,
+  generateValidRequestAuthorizationHeader,
+} = require('../../../test-helper');
+
 const createServer = require('../../../../server');
 
 describe('Acceptance | Controller | users-controller-get-current-user', () => {
@@ -77,6 +82,11 @@ describe('Acceptance | Controller | users-controller-get-current-user', () => {
             'is-certifiable': {
               links: {
                 related: `/api/users/${user.id}/is-certifiable`,
+              },
+            },
+            'authentication-methods': {
+              links: {
+                related: `/api/users/${user.id}/authentication-methods`,
               },
             },
           },
