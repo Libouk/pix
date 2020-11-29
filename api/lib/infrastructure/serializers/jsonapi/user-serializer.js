@@ -16,6 +16,7 @@ module.exports = {
         'memberships', 'certificationCenterMemberships',
         'pixScore', 'scorecards', 'profile',
         'campaignParticipations', 'hasSeenAssessmentInstructions', 'isCertifiable',
+        'authenticationMethods',
       ],
       memberships: {
         ref: 'id',
@@ -81,6 +82,15 @@ module.exports = {
           },
         },
       },
+      authenticationMethods: {
+        ref: 'id',
+        ignoreRelationshipData: true,
+        relationshipLinks: {
+          related(record, current, parent) {
+            return `/api/users/${parent.id}/authentication-methods`;
+          },
+        },
+      },
       meta,
     }).serialize(users);
   },
@@ -91,7 +101,6 @@ module.exports = {
       firstName: json.data.attributes['first-name'],
       lastName: json.data.attributes['last-name'],
       email: json.data.attributes.email,
-      password: json.data.attributes.password,
       cgu: json.data.attributes.cgu,
       lang: json.data.attributes.lang,
       lastTermsOfServiceValidatedAt: json.data.attributes['lastTermsOfServiceValidatedAt'],

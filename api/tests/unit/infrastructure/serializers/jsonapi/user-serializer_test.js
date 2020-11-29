@@ -1,4 +1,5 @@
 const { expect } = require('../../../../test-helper');
+
 const User = require('../../../../../lib/domain/models/User');
 const serializer = require('../../../../../lib/infrastructure/serializers/jsonapi/user-serializer');
 
@@ -22,7 +23,6 @@ describe('Unit | Serializer | JSONAPI | user-serializer', () => {
         pixOrgaTermsOfServiceAccepted: false,
         pixCertifTermsOfServiceAccepted: false,
         hasSeenAssessmentInstructions: false,
-        password: 'Password123',
       });
     });
 
@@ -83,6 +83,11 @@ describe('Unit | Serializer | JSONAPI | user-serializer', () => {
                   related: `/api/users/${userModelObject.id}/is-certifiable`,
                 },
               },
+              'authentication-methods': {
+                links: {
+                  related: `/api/users/${userModelObject.id}/authentication-methods`,
+                },
+              },
             },
           },
         };
@@ -125,7 +130,6 @@ describe('Unit | Serializer | JSONAPI | user-serializer', () => {
       expect(user.firstName).to.equal('Luke');
       expect(user.lastName).to.equal('Skywalker');
       expect(user.email).to.equal('lskywalker@deathstar.empire');
-      expect(user.password).to.equal('');
       expect(user.lang).to.equal('jp');
     });
 

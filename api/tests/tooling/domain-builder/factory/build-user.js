@@ -1,16 +1,19 @@
+const faker = require('faker');
+
 const User = require('../../../../lib/domain/models/User');
+
 const buildMembership = require('./build-membership');
 const buildPixRole = require('./build-pix-role');
 const buildCertificationCenterMembership = require('./build-certification-center-membership');
+const buildAuthenticationMethod = require('./build-authentication-method');
 
 module.exports = function buildUser(
   {
-    id = 1,
-    firstName = 'Jean',
-    lastName = 'Bono',
-    email = 'jean.bono@example.net',
-    username = 'jean.bono1234',
-    password = 'liuehrfi128743KUUKNSUkuz12Ukun',
+    id = faker.random.number(),
+    firstName = faker.name.firstName(),
+    lastName = faker.name.lastName(),
+    email = faker.internet.exampleEmail().toLowerCase(),
+    username,
     cgu = true,
     lang = 'fr',
     lastTermsOfServiceValidatedAt = null,
@@ -21,14 +24,17 @@ module.exports = function buildUser(
     pixRoles = [buildPixRole()],
     memberships = [buildMembership()],
     certificationCenterMemberships = [buildCertificationCenterMembership()],
-    shouldChangePassword = false,
+    authenticationMethods = [buildAuthenticationMethod()],
   } = {}) {
 
   return new User({
-    id, firstName, lastName, email, username, password,
-    cgu, lang, lastTermsOfServiceValidatedAt, mustValidateTermsOfService,
+    id, firstName, lastName, email, username,
+    cgu,
+    lang,
+    lastTermsOfServiceValidatedAt, mustValidateTermsOfService,
     pixOrgaTermsOfServiceAccepted, pixCertifTermsOfServiceAccepted,
-    hasSeenAssessmentInstructions, shouldChangePassword,
+    hasSeenAssessmentInstructions,
     pixRoles, memberships, certificationCenterMemberships,
+    authenticationMethods,
   });
 };

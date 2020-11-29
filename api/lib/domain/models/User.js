@@ -14,9 +14,7 @@ class User {
     knowledgeElements,
     lastName,
     lastTermsOfServiceValidatedAt,
-    password,
     hasSeenAssessmentInstructions,
-    shouldChangePassword,
     mustValidateTermsOfService,
     lang,
     // includes
@@ -26,6 +24,7 @@ class User {
     pixScore,
     scorecards = [],
     campaignParticipations = [],
+    authenticationMethods = [],
     // references
   } = {}) {
     this.id = id;
@@ -34,7 +33,6 @@ class User {
     this.lastName = lastName;
     this.username = username;
     this.email = email ? _.toLower(email) : undefined;
-    this.password = password;
     this.cgu = cgu;
     this.lastTermsOfServiceValidatedAt = lastTermsOfServiceValidatedAt;
     this.mustValidateTermsOfService = mustValidateTermsOfService;
@@ -42,7 +40,6 @@ class User {
     this.pixCertifTermsOfServiceAccepted = pixCertifTermsOfServiceAccepted;
     this.hasSeenAssessmentInstructions = hasSeenAssessmentInstructions;
     this.knowledgeElements = knowledgeElements;
-    this.shouldChangePassword = shouldChangePassword;
     this.lang = lang;
     // includes
     this.pixRoles = pixRoles;
@@ -51,6 +48,7 @@ class User {
     this.certificationCenterMemberships = certificationCenterMemberships;
     this.scorecards = scorecards;
     this.campaignParticipations = campaignParticipations;
+    this.authenticationMethods = authenticationMethods;
     // references
   }
 
