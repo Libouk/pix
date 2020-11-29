@@ -18,6 +18,12 @@ class AlreadyExistingMembershipError extends DomainError {
   }
 }
 
+class AuthenticationMethodNotFoundError extends DomainError {
+  constructor(message = 'Authentication method not found.') {
+    super(message);
+  }
+}
+
 class OrganizationNotFoundError extends DomainError {
   constructor(message = 'Organisation non trouvée.') {
     super(message);
@@ -668,6 +674,7 @@ module.exports = {
   AssessmentEndedError,
   AssessmentNotCompletedError,
   AssessmentResultNotCreatedError,
+  AuthenticationMethodNotFoundError,
   CampaignCodeError,
   CertificateVerificationCodeGenerationTooManyTrials,
   CertificationCandidateForbiddenDeletionError,
