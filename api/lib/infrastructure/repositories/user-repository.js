@@ -1,9 +1,16 @@
 const omit = require('lodash/omit');
-
-const Bookshelf = require('../bookshelf');
-const BookshelfUser = require('../data/user');
 const moment = require('moment');
-const { AlreadyRegisteredEmailError, AlreadyRegisteredUsernameError, SchoolingRegistrationAlreadyLinkedToUserError, UserNotFoundError } = require('../../domain/errors');
+
+const DomainTransaction = require('../DomainTransaction');
+const BookshelfUser = require('../data/user');
+const bookshelfToDomainConverter = require('../utils/bookshelf-to-domain-converter');
+
+const {
+  AlreadyRegisteredEmailError,
+  AlreadyRegisteredUsernameError,
+  UserNotFoundError,
+} = require('../../domain/errors');
+
 const User = require('../../domain/models/User');
 const UserDetailsForAdmin = require('../../domain/models/UserDetailsForAdmin');
 const PixRole = require('../../domain/models/PixRole');
@@ -13,7 +20,6 @@ const CertificationCenterMembership = require('../../domain/models/Certification
 const Organization = require('../../domain/models/Organization');
 const SchoolingRegistrationForAdmin = require('../../domain/read-models/SchoolingRegistrationForAdmin');
 const AuthenticationMethod = require('../../domain/models/AuthenticationMethod');
-const bookshelfToDomainConverter = require('../utils/bookshelf-to-domain-converter');
 
 const PIX_MASTER_ROLE_ID = 1;
 
@@ -108,6 +114,40 @@ function _toPixRolesDomain(pixRolesBookshelf) {
   });
 }
 
+function _getAuthenticationComplementAndExternalIdentifier(authenticationMethodBookshelf) {
+  const identityProvider = authenticationMethodBookshelf.get('identityProvider');
+
+  let authenticationComplement = authenticationMethodBookshelf.get('authenticationComplement');
+  let externalIdentifier = authenticationMethodBookshelf.get('externalIdentifier');
+
+  if (identityProvider === AuthenticationMethod.identityProviders.PIX) {
+    authenticationComplement = new AuthenticationMethod.PasswordAuthenticationMethod({
+      password: authenticationComplement.password,
+      shouldChangePassword: Boolean(authenticationComplement.shouldChangePassword),
+    });
+    externalIdentifier = undefined;
+  }
+
+  return { authenticationComplement, externalIdentifier };
+}
+
+function _toAuthenticationMethodsDomain(authenticationMethodsBookshelf) {
+  return authenticationMethodsBookshelf.map((authenticationMethodBookshelf) => {
+    const {
+      authenticationComplement,
+      externalIdentifier,
+    } = _getAuthenticationComplementAndExternalIdentifier(authenticationMethodBookshelf);
+
+    return new AuthenticationMethod({
+      id: authenticationMethodBookshelf.get('id'),
+      userId: authenticationMethodBookshelf.get('userId'),
+      identityProvider: authenticationMethodBookshelf.get('identityProvider'),
+      externalIdentifier,
+      authenticationComplement,
+    });
+  });
+}
+
 function _toDomain(userBookshelf) {
   return new User({
     id: userBookshelf.get('id'),
@@ -124,6 +164,7 @@ function _toDomain(userBookshelf) {
     certificationCenterMemberships: _toCertificationCenterMembershipsDomain(userBookshelf.related('certificationCenterMemberships')),
     pixRoles: _toPixRolesDomain(userBookshelf.related('pixRoles')),
     hasSeenAssessmentInstructions: Boolean(userBookshelf.get('hasSeenAssessmentInstructions')),
+    authenticationMethods : _toAuthenticationMethodsDomain(userBookshelf.related('authenticationMethods')),
   });
 }
 
@@ -142,11 +183,18 @@ function _setSearchFiltersForQueryBuilder(filter, qb) {
 }
 
 function _adaptModelToDb(user) {
-  return omit(user, [
+  const changedUser = omit(user, [
     'id', 'campaignParticipations', 'pixRoles', 'memberships',
     'certificationCenterMemberships', 'pixScore', 'knowledgeElements',
     'scorecards', 'userOrgaSettings',
+    'authenticationMethods',
   ]);
+
+  return {
+    ...changedUser,
+    passwordDeprecated: '',
+    shouldChangePasswordDeprecated: false,
+  };
 }
 
 module.exports = {
@@ -167,7 +215,7 @@ module.exports = {
       });
   },
 
-  getByUsernameOrEmailWithRoles(username) {
+  getByUsernameOrEmailWithRolesAndPassword(username) {
     return BookshelfUser
       .query((qb) => qb.where({ email: username.toLowerCase() }).orWhere({ 'username': username }))
       .fetch({
@@ -176,6 +224,7 @@ module.exports = {
           'memberships.organization',
           'pixRoles',
           'certificationCenterMemberships.certificationCenter',
+          { 'authenticationMethods': (qb) => qb.where({ identityProvider: 'PIX' }) },
         ],
       })
       .then((foundUser) => {
@@ -296,10 +345,10 @@ module.exports = {
     return bookshelfUser ? _toDomain(bookshelfUser) : null;
   },
 
-  create(user) {
+  create({ user, domainTransaction = DomainTransaction.emptyTransaction() }) {
     const userToCreate = _adaptModelToDb(user);
     return new BookshelfUser(userToCreate)
-      .save()
+      .save(null, { transacting: domainTransaction.knexTransaction })
       .then((bookshelfUser) => bookshelfUser.toDomainEntity());
   },
 
@@ -405,35 +454,6 @@ module.exports = {
     return bookshelfToDomainConverter.buildDomainObject(BookshelfUser, user);
   },
 
-  async createAndReconcileUserToSchoolingRegistration({ domainUser, schoolingRegistrationId, samlId }) {
-    const userToCreate = _adaptModelToDb(domainUser);
-
-    const trx = await Bookshelf.knex.transaction();
-    try {
-      const [userId] = await trx('users').insert(userToCreate, 'id');
-
-      if (samlId) {
-        const authenticationMethod = new AuthenticationMethod({ identityProvider: AuthenticationMethod.identityProviders.GAR, externalIdentifier: samlId, userId });
-        await trx('authentication-methods').insert(authenticationMethod);
-      }
-
-      const updatedSchoolingRegistrationsCount = await trx('schooling-registrations')
-        .where('id', schoolingRegistrationId)
-        .whereNull('userId')
-        .update({ userId, updatedAt: Bookshelf.knex.raw('CURRENT_TIMESTAMP') });
-
-      if (updatedSchoolingRegistrationsCount !== 1) {
-        throw new SchoolingRegistrationAlreadyLinkedToUserError(`L'inscription ${schoolingRegistrationId} est déjà rattachée à un compte utilisateur.`);
-      }
-
-      await trx.commit();
-      return userId;
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  },
-
   async isUsernameAvailable(username) {
     const foundUser = await BookshelfUser
       .where({ username })
@@ -444,14 +464,38 @@ module.exports = {
     return username;
   },
 
-  updateUsernameAndPassword(id, username, hashedPassword) {
+  updateUsername({
+    userId,
+    username,
+    domainTransaction = DomainTransaction.emptyTransaction(),
+  }) {
     return BookshelfUser
-      .where({ id })
-      .save({ username, password: hashedPassword, shouldChangePassword: true }, { patch: true, method: 'update' })
+      .where({ id: userId })
+      .save(
+        { username },
+        {
+          transacting: domainTransaction.knexTransaction,
+          patch: true,
+          method: 'update',
+        },
+      )
       .then((bookshelfUser) => bookshelfUser.toDomainEntity())
       .catch((err) => {
         if (err instanceof BookshelfUser.NoRowsUpdatedError) {
-          throw new UserNotFoundError(`User not found for ID ${id}`);
+          throw new UserNotFoundError(`User not found for ID ${userId}`);
+        }
+        throw err;
+      });
+  },
+
+  async updateSamlId({ userId, samlId }) {
+    return BookshelfUser
+      .where({ id: userId })
+      .save({ samlId }, { patch: true, method: 'update' })
+      .then(() => true)
+      .catch((err) => {
+        if (err instanceof BookshelfUser.NoRowsUpdatedError) {
+          throw new UserNotFoundError(`User not found for ID ${userId}`);
         }
         throw err;
       });
@@ -465,32 +509,6 @@ module.exports = {
       .catch((err) => {
         if (err instanceof BookshelfUser.NoRowsUpdatedError) {
           throw new UserNotFoundError(`User not found for ID ${id}`);
-        }
-        throw err;
-      });
-  },
-
-  updatePasswordThatShouldBeChanged(id, hashedPassword) {
-    return BookshelfUser
-      .where({ id })
-      .save({ password: hashedPassword, shouldChangePassword: true }, { patch: true, method: 'update' })
-      .then((bookshelfUser) => bookshelfUser.toDomainEntity())
-      .catch((err) => {
-        if (err instanceof BookshelfUser.NoRowsUpdatedError) {
-          throw new UserNotFoundError(`User not found for ID ${id}`);
-        }
-        throw err;
-      });
-  },
-
-  async updateExpiredPassword({ userId, hashedNewPassword }) {
-    return BookshelfUser
-      .where({ id: userId })
-      .save({ password: hashedNewPassword, shouldChangePassword: false }, { patch: true, method: 'update' })
-      .then((bookshelfUser) => bookshelfUser.toDomainEntity())
-      .catch((err) => {
-        if (err instanceof BookshelfUser.NoRowsUpdatedError) {
-          throw new UserNotFoundError(`User not found for ID ${userId}`);
         }
         throw err;
       });

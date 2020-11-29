@@ -1,18 +1,20 @@
 /* eslint-disable no-sync */
 const faker = require('faker');
-const bcrypt = require('bcrypt');
 
 const each = require('lodash/each');
 const map = require('lodash/map');
+const omit = require('lodash/omit');
 const times = require('lodash/times');
 
 const { expect, knex, databaseBuilder, domainBuilder, catchErr } = require('../../../test-helper');
 
 const {
-  AlreadyRegisteredEmailError, AlreadyRegisteredUsernameError, SchoolingRegistrationAlreadyLinkedToUserError,
-  NotFoundError, UserNotFoundError,
+  AlreadyRegisteredEmailError,
+  AlreadyRegisteredUsernameError,
+  NotFoundError,
+  UserNotFoundError,
 } = require('../../../../lib/domain/errors');
-const userRepository = require('../../../../lib/infrastructure/repositories/user-repository');
+
 const User = require('../../../../lib/domain/models/User');
 const UserDetailsForAdmin = require('../../../../lib/domain/models/UserDetailsForAdmin');
 const Membership = require('../../../../lib/domain/models/Membership');
@@ -22,18 +24,19 @@ const Organization = require('../../../../lib/domain/models/Organization');
 const SchoolingRegistrationForAdmin = require('../../../../lib/domain/read-models/SchoolingRegistrationForAdmin');
 const AuthenticationMethod = require('../../../../lib/domain/models/AuthenticationMethod');
 
+const userRepository = require('../../../../lib/infrastructure/repositories/user-repository');
+
 describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
   const userToInsert = {
     firstName: faker.name.firstName(),
     lastName: faker.name.lastName(),
     email: faker.internet.exampleEmail().toLowerCase(),
-    password: bcrypt.hashSync('A124B2C3#!', 1),
     cgu: true,
-    shouldChangePassword: false,
   };
 
   let userInDB;
+  let passwordAuthenticationMethodInDB;
   let organizationInDB, organizationRoleInDB;
   let membershipInDB;
   let certificationCenterInDB, certificationCenterMembershipInDB;
@@ -46,6 +49,12 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
     });
 
     userInDB = databaseBuilder.factory.buildUser(userToInsert);
+    passwordAuthenticationMethodInDB = databaseBuilder.factory.buildAuthenticationMethod.buildWithHashedPassword({
+      userId: userInDB.id,
+      hashedPassword: 'ABCDEF1234',
+      shouldChangePassword: false,
+    });
+
     organizationRoleInDB = Membership.roles.ADMIN;
 
     membershipInDB = databaseBuilder.factory.buildMembership({
@@ -117,7 +126,11 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
       beforeEach(async () => {
         userInDb = databaseBuilder.factory.buildUser(userToInsert);
-        databaseBuilder.factory.buildAuthenticationMethod({ identityProvider: AuthenticationMethod.identityProviders.GAR, externalIdentifier: 'some-saml-id', userId: userInDb.id });
+        databaseBuilder.factory.buildAuthenticationMethod({
+          externalIdentifier: 'some-saml-id',
+          identityProvider: AuthenticationMethod.identityProviders.GAR,
+          userId: userInDb.id,
+        });
         await databaseBuilder.commit();
       });
 
@@ -244,10 +257,10 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
       });
     });
 
-    describe('#getByUsernameOrEmailWithRoles', () => {
+    describe('#getByUsernameOrEmailWithRolesAndPassword', () => {
 
-      beforeEach(() => {
-        return _insertUserWithOrganizationsAndCertificationCenterAccesses();
+      beforeEach(async () => {
+        await _insertUserWithOrganizationsAndCertificationCenterAccesses();
       });
 
       it('should return user informations for the given email', async () => {
@@ -255,17 +268,16 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         const expectedUser = new User(userInDB);
 
         // when
-        const user = await userRepository.getByUsernameOrEmailWithRoles(userInDB.email);
+        const foundUser = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.email);
 
         // then
-        expect(user).to.be.an.instanceof(User);
-        expect(user.id).to.equal(expectedUser.id);
-        expect(user.firstName).to.equal(expectedUser.firstName);
-        expect(user.lastName).to.equal(expectedUser.lastName);
-        expect(user.username).to.equal(expectedUser.username);
-        expect(user.email).to.equal(expectedUser.email);
-        expect(user.password).to.equal(expectedUser.password);
-        expect(user.cgu).to.equal(expectedUser.cgu);
+        expect(foundUser).to.be.an.instanceof(User);
+        expect(foundUser.id).to.equal(expectedUser.id);
+        expect(foundUser.firstName).to.equal(expectedUser.firstName);
+        expect(foundUser.lastName).to.equal(expectedUser.lastName);
+        expect(foundUser.username).to.equal(expectedUser.username);
+        expect(foundUser.email).to.equal(expectedUser.email);
+        expect(foundUser.cgu).to.equal(expectedUser.cgu);
       });
 
       it('should return user informations for the given email (case insensitive)', async () => {
@@ -274,12 +286,12 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         const uppercaseEmailAlreadyInDb = userInDB.email.toUpperCase();
 
         // when
-        const user = await userRepository.getByUsernameOrEmailWithRoles(uppercaseEmailAlreadyInDb);
+        const foundUser = await userRepository.getByUsernameOrEmailWithRolesAndPassword(uppercaseEmailAlreadyInDb);
 
         // then
-        expect(user).to.be.an.instanceof(User);
-        expect(user.id).to.equal(expectedUser.id);
-        expect(user.email).to.equal(expectedUser.email);
+        expect(foundUser).to.be.an.instanceof(User);
+        expect(foundUser.id).to.equal(expectedUser.id);
+        expect(foundUser.email).to.equal(expectedUser.email);
       });
 
       it('should return user informations for the given username', async () => {
@@ -287,22 +299,38 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         const expectedUser = new User(userInDB);
 
         // when
-        const user = await userRepository.getByUsernameOrEmailWithRoles(userInDB.username);
+        const foundUser = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.username);
 
         // then
-        expect(user).to.be.an.instanceof(User);
-        expect(user.id).to.equal(expectedUser.id);
-        expect(user.firstName).to.equal(expectedUser.firstName);
-        expect(user.lastName).to.equal(expectedUser.lastName);
-        expect(user.username).to.equal(expectedUser.username);
-        expect(user.email).to.equal(expectedUser.email);
-        expect(user.password).to.equal(expectedUser.password);
-        expect(user.cgu).to.equal(expectedUser.cgu);
+        expect(foundUser).to.be.an.instanceof(User);
+        expect(foundUser.id).to.equal(expectedUser.id);
+        expect(foundUser.firstName).to.equal(expectedUser.firstName);
+        expect(foundUser.lastName).to.equal(expectedUser.lastName);
+        expect(foundUser.username).to.equal(expectedUser.username);
+        expect(foundUser.email).to.equal(expectedUser.email);
+        expect(foundUser.cgu).to.equal(expectedUser.cgu);
+      });
+
+      it('should return authenticationMethods associated to the user', async () => {
+        // given
+        const omittedAttributes = ['createdAt', 'updatedAt'];
+        const expectedAuthenticationMethod = omit(passwordAuthenticationMethodInDB, omittedAttributes);
+
+        // when
+        const foundUser = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.email);
+
+        // then
+        expect(foundUser.authenticationMethods).to.be.an('array');
+        expect(foundUser.authenticationMethods).to.have.lengthOf(1);
+
+        const firstAuthenticationMethod = foundUser.authenticationMethods[0];
+        expect(omit(firstAuthenticationMethod, omittedAttributes))
+          .to.deep.equal(expectedAuthenticationMethod);
       });
 
       it('should return membership associated to the user', async () => {
         // when
-        const user = await userRepository.getByUsernameOrEmailWithRoles(userInDB.email);
+        const user = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.email);
 
         // then
         expect(user.memberships).to.be.an('array');
@@ -336,7 +364,7 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
           await databaseBuilder.commit();
 
           // when
-          const user = await userRepository.getByUsernameOrEmailWithRoles(userInDB.email);
+          const user = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.email);
 
           // then
           expect(user.memberships).to.be.an('array');
@@ -346,7 +374,7 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
       it('should return certification center membership associated to the user', async () => {
         // when
-        const user = await userRepository.getByUsernameOrEmailWithRoles(userInDB.email);
+        const user = await userRepository.getByUsernameOrEmailWithRolesAndPassword(userInDB.email);
 
         // then
         expect(user.certificationCenterMemberships).to.be.an('array');
@@ -362,7 +390,7 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         const unusedEmail = 'kikou@pix.fr';
 
         // when
-        const result = await catchErr(userRepository.getByUsernameOrEmailWithRoles)(unusedEmail);
+        const result = await catchErr(userRepository.getByUsernameOrEmailWithRolesAndPassword)(unusedEmail);
 
         // then
         expect(result).to.be.instanceOf(UserNotFoundError);
@@ -373,7 +401,7 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         const unusedUsername = 'john.doe0909';
 
         // when
-        const result = await catchErr(userRepository.getByUsernameOrEmailWithRoles)(unusedUsername);
+        const result = await catchErr(userRepository.getByUsernameOrEmailWithRolesAndPassword)(unusedUsername);
 
         // then
         expect(result).to.be.instanceOf(UserNotFoundError);
@@ -652,13 +680,11 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         firstName: faker.name.firstName(),
         lastName: faker.name.lastName(),
         email: email,
-        password: 'Pix1024#',
         cgu: true,
       });
-      user.id = undefined;
 
       // when
-      await userRepository.create(user);
+      await userRepository.create({ user });
 
       // then
       const usersSaved = await knex('users').select();
@@ -672,13 +698,11 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
         firstName: faker.name.firstName(),
         lastName: faker.name.lastName(),
         email: email,
-        password: 'Pix1024#',
         cgu: true,
       });
-      user.id = undefined;
 
       // when
-      const userSaved = await userRepository.create(user);
+      const userSaved = await userRepository.create({ user });
 
       // then
       expect(userSaved).to.be.an.instanceOf(User);
@@ -770,75 +794,6 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
       // then
       expect(result).to.be.instanceOf(AlreadyRegisteredEmailError);
-    });
-  });
-
-  describe('#updatePassword', () => {
-
-    let userInDb;
-
-    beforeEach(async () => {
-      userInDb = databaseBuilder.factory.buildUser(userToInsert);
-      await databaseBuilder.commit();
-    });
-
-    it('should save the user', async () => {
-      // given
-      const newPassword = '1235Pix!';
-
-      // when
-      const updatedUser = await userRepository.updatePassword(userInDb.id, newPassword);
-
-      // then
-      expect(updatedUser).to.be.an.instanceOf(User);
-      expect(updatedUser.password).to.equal(newPassword);
-    });
-
-    it('should throw UserNotFoundError when user id not found', async () => {
-      // given
-      const wrongUserId = 0;
-      const newPassword = '1235Pix!';
-
-      // when
-      const error = await catchErr(userRepository.updatePassword)(wrongUserId, newPassword);
-
-      // then
-      expect(error).to.be.instanceOf(UserNotFoundError);
-    });
-  });
-
-  describe('#updateTemporaryPassword', () => {
-
-    let userInDb;
-
-    beforeEach(async () => {
-      userInDb = databaseBuilder.factory.buildUser(userToInsert);
-      await databaseBuilder.commit();
-    });
-
-    it('should save the user', async () => {
-      // given
-      const generatedPassword = '1235Pix!';
-
-      // when
-      const updatedUser = await userRepository.updatePasswordThatShouldBeChanged(userInDb.id, generatedPassword);
-
-      // then
-      expect(updatedUser).to.be.an.instanceOf(User);
-      expect(updatedUser.password).to.equal(generatedPassword);
-      expect(updatedUser.shouldChangePassword).to.be.true;
-    });
-
-    it('should throw UserNotFoundError when user id not found', async () => {
-      // given
-      const wrongUserId = 0;
-      const generatedPassword = '1235Pix!';
-
-      // when
-      const error = await catchErr(userRepository.updatePasswordThatShouldBeChanged)(wrongUserId, generatedPassword);
-
-      // then
-      expect(error).to.be.instanceOf(UserNotFoundError);
     });
   });
 
@@ -938,38 +893,40 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
   });
 
-  describe('#updateUsernameAndPassword', () => {
+  describe('#updateUsername', () => {
 
-    let userInDb;
+    let userId;
 
     beforeEach(async () => {
-      userInDb = databaseBuilder.factory.buildUser(userToInsert);
+      userId = databaseBuilder.factory.buildUser(userToInsert).id;
       await databaseBuilder.commit();
     });
 
-    it('should update the username and password', async () => {
+    it('should update the username', async () => {
       // given
       const username = 'blue.carter0701';
-      const generatedPassword = '1235Pix!';
 
       // when
-      const updatedUser = await userRepository.updateUsernameAndPassword(userInDb.id, username, generatedPassword);
+      const updatedUser = await userRepository.updateUsername({
+        userId,
+        username,
+      });
 
       // then
       expect(updatedUser).to.be.an.instanceOf(User);
       expect(updatedUser.username).to.equal(username);
-      expect(updatedUser.password).to.equal(generatedPassword);
-      expect(updatedUser.shouldChangePassword).to.be.true;
     });
 
     it('should throw UserNotFoundError when user id not found', async () => {
       // given
       const wrongUserId = 0;
       const username = 'blue.carter0701';
-      const generatedPassword = '1235Pix!';
 
       // when
-      const error = await catchErr(userRepository.updateUsernameAndPassword)(wrongUserId, username, generatedPassword);
+      const error = await catchErr(userRepository.updateUsername)({
+        userId: wrongUserId,
+        username,
+      });
 
       // then
       expect(error).to.be.instanceOf(UserNotFoundError);
@@ -1322,99 +1279,6 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
 
   });
 
-  describe('#createAndReconcileUserToSchoolingRegistration', () => {
-    const email = 'jojo.lapointe@example.net';
-    let schoolingRegistrationId;
-    let organizationId;
-    let domainUser;
-
-    beforeEach(() => {
-      // given
-      organizationId = databaseBuilder.factory.buildOrganization().id;
-      schoolingRegistrationId = databaseBuilder.factory.buildSchoolingRegistration({ userId: null, organizationId }).id;
-      domainUser = domainBuilder.buildUser({ email });
-
-      return databaseBuilder.commit();
-    });
-
-    afterEach(async () => {
-      await knex('authentication-methods').delete();
-      await knex('schooling-registrations').delete();
-      await knex('users').delete();
-    });
-
-    context('when all goes well', function() {
-
-      it('should create user', async () => {
-        // when
-        const result = await userRepository.createAndReconcileUserToSchoolingRegistration({ domainUser, schoolingRegistrationId });
-
-        // then
-        const foundUser = await knex('users').where({ email });
-        expect(foundUser).to.have.lengthOf(1);
-        expect(result).to.equal(foundUser[0].id);
-      });
-
-      it('should associate user to student', async () => {
-        // when
-        await userRepository.createAndReconcileUserToSchoolingRegistration({ domainUser, schoolingRegistrationId });
-
-        // then
-        const foundSchoolingRegistrations = await knex('schooling-registrations').where('id', schoolingRegistrationId);
-        expect(foundSchoolingRegistrations[0].userId).to.not.be.undefined;
-      });
-
-      it('should update updatedAt column in schooling-registration row', async () => {
-        // given
-        await knex('schooling-registrations').update({ updatedAt: new Date('2019-01-01') }).where({ id: schoolingRegistrationId });
-        const { updatedAt: beforeUpdatedAt } = await knex.select('updatedAt').from('schooling-registrations').where({ id: schoolingRegistrationId }).first();
-
-        // when
-        await userRepository.createAndReconcileUserToSchoolingRegistration({ domainUser, schoolingRegistrationId });
-
-        // then
-        const { updatedAt: afterUpdatedAt } = await knex.select('updatedAt').from('schooling-registrations').where({ id: schoolingRegistrationId }).first();
-        expect(afterUpdatedAt).to.be.above(beforeUpdatedAt);
-      });
-
-      context('when an authentication method is provided', () => {
-
-        it('should create the authentication method for the created user', async () => {
-          // given
-          const samlId = 'samlId';
-
-          // when
-          const result = await userRepository.createAndReconcileUserToSchoolingRegistration({ domainUser, schoolingRegistrationId, samlId });
-
-          // then
-          const foundAuthenticationMethod = await knex('authentication-methods').where({ identityProvider: AuthenticationMethod.identityProviders.GAR, externalIdentifier: samlId });
-          expect(foundAuthenticationMethod).to.have.lengthOf(1);
-          expect(result).to.equal(foundAuthenticationMethod[0].userId);
-        });
-      });
-    });
-
-    context('when creation succeeds and association fails', () => {
-
-      it('should rollback after association fails', async () => {
-        // given
-        const userId = databaseBuilder.factory.buildUser().id;
-        schoolingRegistrationId = databaseBuilder.factory.buildSchoolingRegistration({ userId, organizationId }).id;
-        await databaseBuilder.commit();
-
-        // when
-        const error = await catchErr(userRepository.createAndReconcileUserToSchoolingRegistration)({ domainUser, schoolingRegistrationId });
-
-        // then
-        expect(error).to.be.instanceOf(SchoolingRegistrationAlreadyLinkedToUserError);
-        const foundSchoolingRegistrations = await knex('schooling-registrations').where('id', schoolingRegistrationId);
-        expect(foundSchoolingRegistrations[0].userId).to.equal(userId);
-        const foundUser = await knex('users').where({ email });
-        expect(foundUser).to.have.lengthOf(0);
-      });
-    });
-  });
-
   describe('#isUsernameAvailable', () => {
 
     const username = 'abc.def0101';
@@ -1442,35 +1306,35 @@ describe('Integration | Infrastructure | Repository | UserRepository', () => {
     });
   });
 
-  describe('#updateExpiredPassword', () => {
+  describe('#updateSamlId', () => {
 
     let userId;
 
     beforeEach(async () => {
-      userId = databaseBuilder.factory.buildUser({ shouldChangePassword: true }).id;
+      userId = databaseBuilder.factory.buildUser({ samlId: null }).id;
       await databaseBuilder.commit();
     });
 
-    it('should update the user\'s password and shouldChangePassword', async () => {
+    it('should update the user\'s samlId', async () => {
       // given
-      const hashedNewPassword = '1235Pix!';
+      const expectedSamlId = 'abcd';
 
       // when
-      const updatedUser = await userRepository.updateExpiredPassword({ userId, hashedNewPassword });
+      const result = await userRepository.updateSamlId({ userId, samlId: expectedSamlId });
 
       // then
-      expect(updatedUser).to.be.an.instanceOf(User);
-      expect(updatedUser.password).to.equal(hashedNewPassword);
-      expect(updatedUser.shouldChangePassword).to.false;
+      expect(result).to.be.true;
+      const foundUsers = await knex('users').where({ id: userId });
+      expect(foundUsers[0].samlId).to.equal(expectedSamlId);
     });
 
     it('should throw UserNotFoundError when user id is not found', async () => {
       // given
       const wrongUserId = 0;
-      const hashedNewPassword = '1235Pix!';
+      const samlId = 'abcd';
 
       // when
-      const error = await catchErr(userRepository.updateExpiredPassword)({ userId: wrongUserId, hashedNewPassword });
+      const error = await catchErr(userRepository.updateSamlId)({ userId: wrongUserId, samlId });
 
       // then
       expect(error).to.be.instanceOf(UserNotFoundError);
