@@ -47,7 +47,38 @@ buildAuthenticationMethod.buildPasswordAuthenticationMethod = function({
   const values = {
     id,
     identityProvider: AuthenticationMethod.identityProviders.PIX,
-    authenticationComplement: new AuthenticationMethod.PasswordAuthenticationMethod({ password, shouldChangePassword }),
+    authenticationComplement: new AuthenticationMethod.PasswordAuthenticationMethod({
+      password, shouldChangePassword,
+    }),
+    externalIdentifier: undefined,
+    userId,
+    createdAt,
+    updatedAt,
+  };
+  return databaseBuffer.pushInsertable({
+    tableName: 'authentication-methods',
+    values,
+  });
+};
+
+buildAuthenticationMethod.buildWithHashedPassword = function({
+  id,
+  hashedPassword,
+  shouldChangePassword = false,
+  userId,
+  createdAt = faker.date.past(),
+  updatedAt = faker.date.past(),
+} = {}) {
+
+  const password = isUndefined(hashedPassword) ? encrypt.hashPasswordSync(faker.internet.password()) : hashedPassword;
+  userId = isUndefined(userId) ? buildUser().id : userId;
+
+  const values = {
+    id,
+    identityProvider: AuthenticationMethod.identityProviders.PIX,
+    authenticationComplement: new AuthenticationMethod.PasswordAuthenticationMethod({
+      password, shouldChangePassword,
+    }),
     externalIdentifier: undefined,
     userId,
     createdAt,
