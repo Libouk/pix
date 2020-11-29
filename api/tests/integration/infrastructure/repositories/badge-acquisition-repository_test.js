@@ -16,12 +16,12 @@ describe('Integration | Repository | Badge Acquisition', () => {
       badgeAcquisitionToCreate = databaseBuilder.factory.buildBadgeAcquisition({ badgeId, userId });
       badgeAcquisitionToCreate.id = undefined;
       await databaseBuilder.commit();
-
     });
 
     afterEach(async () => {
       await knex('badge-acquisitions').delete();
-      return knex('users').delete();
+      await knex('authentication-methods').delete();
+      await knex('users').delete();
     });
 
     it('should persist the badge acquisition in db', async () => {
@@ -35,7 +35,6 @@ describe('Integration | Repository | Badge Acquisition', () => {
       const result = await knex('badge-acquisitions').where('id', badgeAcquisitionIds[0]);
       expect(result).to.have.lengthOf(1);
     });
-
   });
 
   describe('#getAcquiredBadgeIds', () => {
@@ -93,7 +92,7 @@ describe('Integration | Repository | Badge Acquisition', () => {
 
     it('should return badge ids acquired by user for a campaign', async () => {
       // when
-      const acquiredBadgeIdsByUsers = await badgeAcquisitionRepository.getCampaignAcquiredBadgesByUsers({ 
+      const acquiredBadgeIdsByUsers = await badgeAcquisitionRepository.getCampaignAcquiredBadgesByUsers({
         campaignId: campaign.id,
         userIds: [user1.id, user2.id],
       });
