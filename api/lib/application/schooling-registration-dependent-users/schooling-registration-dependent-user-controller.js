@@ -13,12 +13,16 @@ module.exports = {
       birthdate: payload['birthdate'],
       email: payload.email,
       username: payload.username,
-      password: payload.password,
       withUsername: payload['with-username'],
     };
     const locale = extractLocaleFromRequest(request);
 
-    await usecases.createAndReconcileUserToSchoolingRegistration({ userAttributes, campaignCode: payload['campaign-code'], locale });
+    await usecases.createAndReconcileUserToSchoolingRegistration({
+      userAttributes,
+      password: payload.password,
+      campaignCode: payload['campaign-code'],
+      locale,
+    });
 
     return h.response().code(204);
   },
