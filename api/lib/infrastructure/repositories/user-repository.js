@@ -296,11 +296,15 @@ module.exports = {
     return bookshelfUser ? _toDomain(bookshelfUser) : null;
   },
 
-  create(user) {
-    const userToCreate = _adaptModelToDb(user);
-    return new BookshelfUser(userToCreate)
-      .save()
-      .then((bookshelfUser) => bookshelfUser.toDomainEntity());
+  async create(user) {
+    try {
+      const userToCreate = _adaptModelToDb(user);
+      await new BookshelfUser(userToCreate)
+        .save()
+        .then((bookshelfUser) => bookshelfUser.toDomainEntity());
+    } catch (error) {
+      console.log(error);
+    }
   },
 
   isEmailAvailable(email) {
