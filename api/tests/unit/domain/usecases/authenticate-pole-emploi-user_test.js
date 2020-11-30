@@ -55,6 +55,7 @@ describe('Unit | Application | Use Case | authenticate-pole-emploi-user', () => 
 
     authenticationMethodRepository = {
       create: sinon.stub().resolves(),
+      updatePoleEmploiAuthenticationComplementByUserId: sinon.stub().resolves(),
     };
 
     DomainTransaction.execute = (lambda) => { return lambda(domainTransaction); };
@@ -141,6 +142,26 @@ describe('Unit | Application | Use Case | authenticate-pole-emploi-user', () => 
 
       // then
       expect(userRepository.create).to.not.have.been.called;
+    });
+
+    it('should call authentication repository updatePoleEmploiAuthenticationComplementByUserId function', async () => {
+      // given
+      userRepository.findByPoleEmploiExternalIdentifier.resolves({ id: 1 });
+      const expectedAuthenticationComplement = new AuthenticationMethod.PoleEmploiAuthenticationComplement({
+        accessToken,
+        idToken,
+        expiresIn,
+        refreshToken,
+      });
+
+      // when
+      await authenticatePoleEmploiUser({
+        code, redirectUri, clientId,
+        userRepository, authenticationMethodRepository, authenticationService, tokenService,
+      });
+
+      // then
+      expect(authenticationMethodRepository.updatePoleEmploiAuthenticationComplementByUserId).to.have.been.calledWith({ authenticationComplement: expectedAuthenticationComplement, userId });
     });
   });
 
