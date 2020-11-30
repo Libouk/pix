@@ -7,49 +7,46 @@ import { OTHER, LATE_OR_LEAVING } from 'pix-certif/models/certification-issue-re
 export default class ExaminerReportModal extends Component {
   @service store
 
-  reportOfTypeOther = this.args.report.examinerComment;
+  @tracked isReportOfTypeOtherChecked = false;
+  @tracked isReportOfTypeLateOrLeavingChecked = false;
+  @tracked reportLength = 0
 
   constructor() {
     super(...arguments);
-    this.currentIssueReport = this.store.createRecord('certification-issue-report', { certificationCourseId: this.args.report.certificationCourseId });
+    const certificationIssueReports = this.args.report.certificationIssueReports;
+    if (certificationIssueReports && certificationIssueReports.length) {
+      this.currentIssueReport = certificationIssueReports[0];
+      // todo : selon la catégorie il faut checker le bon radio button
+    } else {
+      this.currentIssueReport = this.store.createRecord('certification-issue-report', { certificationCourseId: this.args.report.certificationCourseId });
+    }
   }
-
-  @tracked
-  isReportOfTypeOtherChecked = false;
-
-  @tracked
-  isReportOfTypeLateOrLeavingChecked = false;
-
-  @tracked
-  reportLength = 0
 
   @action
   toggleShowReportOfTypeOther() {
     this.isReportOfTypeOtherChecked = !this.isReportOfTypeOtherChecked;
+    this.currentIssueReport.description = null;
+    this.reportLength = 0;
     if (this.isReportOfTypeOtherChecked) {
-      this.currentIssueReport.categoryId = OTHER;
       this.isReportOfTypeLateOrLeavingChecked = false;
-    }
-    if (this.args.report.examinerComment) {
-      this.reportLength = this.args.report.examinerComment.length;
+      this.currentIssueReport.categoryId = OTHER;
     }
   }
 
   @action
   toggleShowReportOfTypeLateOrLeaving() {
     this.isReportOfTypeLateOrLeavingChecked = !this.isReportOfTypeLateOrLeavingChecked;
-    if (this.isReportOfTypeOtherChecked) {
-      this.currentIssueReport.categoryId = LATE_OR_LEAVING;
+    this.currentIssueReport.description = null;
+    this.reportLength = 0;
+    if (this.isReportOfTypeLateOrLeavingChecked) {
       this.isReportOfTypeOtherChecked = false;
-    }
-    if (this.args.report.examinerComment) {
-      this.reportLength = this.args.report.examinerComment.length;
+      this.currentIssueReport.categoryId = LATE_OR_LEAVING;
     }
   }
 
   @action
   submitReport() {
-    this.args.report.certificationIssueReports.push(this.currentIssueReport);
+    this.args.report.certificationIssueReports.push(this.currentIssueReport); // .push ???
     this.args.closeModal();
   }
 
