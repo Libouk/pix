@@ -1,0 +1,90 @@
+[
+  {
+    "userId": 1,
+    "identityProvider": "PIX",
+    "authenticationComplement" :  {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 2,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 3,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 4,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 5,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 6,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 7,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 8,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2b$05$Ryd6vVDoubvN9MQmSGmfY.tscxdmWhu1g8NOrHI4dveemziMof6Qm",
+      "shouldChangePassword": true
+    }
+  },
+  {
+    "userId": 9,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 10,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  },
+  {
+    "userId": 11,
+    "identityProvider": "PIX",
+    "authenticationComplement" : {
+      "password": "$2a$05$IP2HpgRg180EVjTnnq5yTOAW.42Bt3dIxoRMu6lV1NYHTSJeXO.U.",
+      "shouldChangePasswordDeprecated": false
+    }
+  }
+]
