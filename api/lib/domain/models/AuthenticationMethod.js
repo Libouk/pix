@@ -26,7 +26,7 @@ class PasswordAuthenticationMethod {
 const validationSchema = Joi.object({
   id: Joi.number().optional(),
   identityProvider: Joi.string().valid(...Object.values(identityProviders)).required(),
-  authenticationComplement: Joi.when('identityProvider', { is: identityProviders.PIX, then: Joi.object().instance(PasswordAuthenticationMethod).required(), otherwise: Joi.any().forbidden() }),
+  authenticationComplement: Joi.when('identityProvider', { is: identityProviders.PIX, then: Joi.object().instance(PasswordAuthenticationMethod).required(), otherwise: Joi.any().empty() }),
   externalIdentifier: Joi.when('identityProvider', [
     { is: identityProviders.GAR, then: Joi.string().required() },
     { is: identityProviders.POLE_EMPLOI, then: Joi.string().required() },
